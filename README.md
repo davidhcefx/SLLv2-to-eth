@@ -32,7 +32,12 @@ install.
 
 The error message indicates that the Python environment is managed by the operating system's package manager (in this case, Debian or Ubuntu), and it doesn't allow installing packages globally using `pip`
 
-In this case follow this procedure:
+**Quick Fix:** Run the automated setup script:
+```bash
+./setup_scapy_venv.sh
+```
+
+**Manual Fix:** Follow this procedure:
 
 1. Create a new virtual environment named "venv"
 
