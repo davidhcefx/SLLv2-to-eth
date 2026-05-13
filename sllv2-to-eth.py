@@ -29,19 +29,34 @@ parser.add_argument("input_file", help="Path to the input PCAP file (SLL2 format
 parser.add_argument("output_file", help="Path to the output PCAP file (Ethernet format)")
 parser.add_argument("--src-mac", default="aa:bb:cc:dd:ee:ff", help="Source MAC address (default: aa:bb:cc:dd:ee:ff)")
 parser.add_argument("--dst-mac", default="ff:ee:dd:cc:bb:aa", help="Destination MAC address (default: ff:ee:dd:cc:bb:aa)")
+parser.add_argument("--progress", action="store_true", help="Show conversion progress in 10% steps")
 
 args = parser.parse_args()
 
-# Read packets from the input SLL2 PCAP file
-packets = rdpcap(args.input_file)
+# Count packets first so we can report conversion progress in 10% steps.
+total_packets = 0
+next_progress = 10
+if args.progress:
+    with PcapReader(args.input_file) as pcap_reader:
+        total_packets = sum(1 for _ in pcap_reader)
+        if total_packets == 0:
+            print("Input file has no packets. Nothing to convert.")
+            raise SystemExit(0)
+
 eth_packets = []
 
-for pkt in packets:
-    if pkt.haslayer("Raw"):
-        # Create a new Ethernet frame with specified MACs and original packet payload
-        eth_pkt = Ether(src=args.src_mac, dst=args.dst_mac) / pkt.payload
-        eth_pkt.time = pkt.time  # Keep the original timestamp
-        eth_packets.append(eth_pkt)
+# Read packets from the input SLL2 PCAP file
+with PcapReader(args.input_file) as pcap_reader:
+    for idx, pkt in enumerate(pcap_reader, start=1):
+        if pkt.haslayer("Raw"):
+            # Create a new Ethernet frame with specified MACs and original packet payload
+            eth_pkt = Ether(src=args.src_mac, dst=args.dst_mac) / pkt.payload
+            eth_pkt.time = pkt.time  # Keep the original timestamp
+            eth_packets.append(eth_pkt)
+
+        if args.progress and idx >= (next_progress * total_packets) // 100:
+            print(f"Progress: {next_progress}% ({idx}/{total_packets})")
+            next_progress += 10
 
 # Write the new packets to the output Ethernet PCAP file
 wrpcap(args.output_file, eth_packets)
