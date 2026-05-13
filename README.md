@@ -46,6 +46,9 @@ In this case follow this procedure:
 
 `pip install scapy`
 
+4. Deactivate the virtual environment
+
+`deactivate`
 
 
 ## Run
